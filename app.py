@@ -1,83 +1,96 @@
-# app.py (Place this in C:\Users\Jason Peart\btc_payment_site)
-
 from flask import Flask, request, render_template, redirect, url_for
-import os
-import requests
-import smtplib
-from email.message import EmailMessage
-from dotenv import load_dotenv
 from flask_talisman import Talisman
-
-# Load environment variables
-load_dotenv()
+import sqlite3
+import json
+import os
+import smtplib
+from email.mime.text import MIMEText
+from datetime import datetime
 
 app = Flask(__name__)
 Talisman(app)
 
-# Config from .env
-NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY")
-BTC_WALLET_ADDRESS = os.getenv("BTC_WALLET_ADDRESS")
-NOWPAYMENTS_TEST_MODE = os.getenv("NOWPAYMENTS_TEST_MODE", "true").lower() == "true"
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-FROM_EMAIL = os.getenv("FROM_EMAIL")
-TO_EMAIL = os.getenv("TO_EMAIL")
+DB_PATH = "donations.db"
+THANK_YOU_LINK = "/thank-you"
+
+# Ensure DB exists
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS donations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            payment_id TEXT,
+            amount TEXT,
+            currency TEXT,
+            created_at TEXT,
+            email TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# Email (optional setup)
+def send_email(to_email, subject, body):
+    try:
+        smtp_server = os.getenv("SMTP_SERVER")
+        smtp_port = int(os.getenv("SMTP_PORT", 587))
+        smtp_user = os.getenv("SMTP_USER")
+        smtp_pass = os.getenv("SMTP_PASS")
+
+        msg = MIMEText(body)
+        msg["Subject"] = subject
+        msg["From"] = smtp_user
+        msg["To"] = to_email
+
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(smtp_user, [to_email], msg.as_string())
+    except Exception as e:
+        print(f"Email error: {e}")
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/donorbox-webhook", methods=["POST"])
-def donorbox_webhook():
-    try:
-        data = request.json
-        amount = data.get("amount", "0")
-        donor_email = data.get("donor", {}).get("email", "unknown")
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    data = request.json
+    print("Received Webhook:", data)
 
-        # Create payout via NOWPayments
-        headers = {
-            "x-api-key": NOWPAYMENTS_API_KEY,
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "amount": amount,
-            "currency": "usd",
-            "payee_address": BTC_WALLET_ADDRESS,
-            "payout_currency": "btc",
-            "is_fee_paid_by_user": True,
-            "test_mode": NOWPAYMENTS_TEST_MODE
-        }
-        payout_res = requests.post("https://api.nowpayments.io/v1/payout", headers=headers, json=payload)
-        payout_res.raise_for_status()
+    payment_id = data.get("payment_id")
+    amount = data.get("price_amount")
+    currency = data.get("price_currency")
+    email = data.get("order_description", "")  # optionally passed as description
 
-        notify_email(f"BTC Donation Sent", f"Donor: {donor_email}\nAmount: ${amount}\nStatus: Success")
-        return {"status": "success"}, 200
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("INSERT INTO donations (payment_id, amount, currency, created_at, email) VALUES (?, ?, ?, ?, ?)",
+              (payment_id, amount, currency, datetime.utcnow().isoformat(), email))
+    conn.commit()
+    conn.close()
 
-    except Exception as e:
-        notify_email("Donation Processing Failed", str(e))
-        return {"status": "error", "message": str(e)}, 500
+    # Optional: email receipt
+    if email:
+        send_email(email, "Thank you for your donation!", f"We received {amount} {currency}. Thank you!")
 
-def notify_email(subject, body):
-    try:
-        msg = EmailMessage()
-        msg["Subject"] = subject
-        msg["From"] = FROM_EMAIL
-        msg["To"] = TO_EMAIL
-        msg.set_content(body)
-
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.send_message(msg)
-    except Exception as e:
-        with open("email_errors.log", "a") as log:
-            log.write(f"Failed to send email: {e}\n")
+    return json.dumps({"status": "success"}), 200
 
 @app.route("/admin")
-def admin():
-    return render_template("admin.html")
+def admin_dashboard():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT payment_id, amount, currency, created_at, email FROM donations ORDER BY created_at DESC")
+    donations = c.fetchall()
+    conn.close()
+    return render_template("admin.html", donations=donations)
+
+@app.route("/thank-you")
+def thank_you():
+    return render_template("thank_you.html")
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
