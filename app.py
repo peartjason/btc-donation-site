@@ -1,16 +1,23 @@
+# app.py (Place this in C:\Users\Jason Peart\btc_payment_site)
+
+from flask import Flask, request, render_template, redirect, url_for
 import os
-from flask import Flask, request, jsonify, render_template
 import requests
 import smtplib
-from email.mime.text import MIMEText
+from email.message import EmailMessage
+from dotenv import load_dotenv
+from flask_talisman import Talisman
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
+Talisman(app)
 
-# Environment variables
+# Config from .env
 NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY")
-NOWPAYMENTS_TEST_MODE = os.getenv("NOWPAYMENTS_TEST_MODE", "true").lower() == "true"
 BTC_WALLET_ADDRESS = os.getenv("BTC_WALLET_ADDRESS")
-
+NOWPAYMENTS_TEST_MODE = os.getenv("NOWPAYMENTS_TEST_MODE", "true").lower() == "true"
 SMTP_SERVER = os.getenv("SMTP_SERVER")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME")
@@ -24,60 +31,53 @@ def index():
 
 @app.route("/donorbox-webhook", methods=["POST"])
 def donorbox_webhook():
-    data = request.json
-    amount_usd = float(data.get("amount", 0))
-    donor_name = data.get("donor", {}).get("name", "Anonymous")
-
-    headers = {
-        "x-api-key": NOWPAYMENTS_API_KEY,
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "price_amount": amount_usd,
-        "price_currency": "usd",
-        "pay_currency": "btc",
-        "payout_address": BTC_WALLET_ADDRESS,
-        "is_fee_paid_by_user": True,
-        "ipn_callback_url": "",
-        "is_test": NOWPAYMENTS_TEST_MODE
-    }
-
-    response = requests.post("https://api.nowpayments.io/v1/payout", headers=headers, json=payload)
-    result = response.json()
-
-    if response.status_code == 200:
-        btc_amount = result.get("pay_amount")
-        notify_email(donor_name, amount_usd, btc_amount)
-        return jsonify({
-            "status": "BTC Sent (Test Mode)" if NOWPAYMENTS_TEST_MODE else "BTC Sent",
-            "details": result
-        }), 200
-    else:
-        return jsonify({"error": "NOWPayments failed", "details": result}), 400
-
-def notify_email(name, usd, btc):
     try:
-        msg = MIMEText(f"""New donation received:
+        data = request.json
+        amount = data.get("amount", "0")
+        donor_email = data.get("donor", {}).get("email", "unknown")
 
-Donor: {name}
-Amount: ${usd}
-BTC Sent: {btc}
-""")
-        msg["Subject"] = "New BTC Donation"
+        # Create payout via NOWPayments
+        headers = {
+            "x-api-key": NOWPAYMENTS_API_KEY,
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "amount": amount,
+            "currency": "usd",
+            "payee_address": BTC_WALLET_ADDRESS,
+            "payout_currency": "btc",
+            "is_fee_paid_by_user": True,
+            "test_mode": NOWPAYMENTS_TEST_MODE
+        }
+        payout_res = requests.post("https://api.nowpayments.io/v1/payout", headers=headers, json=payload)
+        payout_res.raise_for_status()
+
+        notify_email(f"BTC Donation Sent", f"Donor: {donor_email}\nAmount: ${amount}\nStatus: Success")
+        return {"status": "success"}, 200
+
+    except Exception as e:
+        notify_email("Donation Processing Failed", str(e))
+        return {"status": "error", "message": str(e)}, 500
+
+def notify_email(subject, body):
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = subject
         msg["From"] = FROM_EMAIL
         msg["To"] = TO_EMAIL
+        msg.set_content(body)
 
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.send_message(msg)
     except Exception as e:
-        print(f"Email notification failed: {e}")
+        with open("email_errors.log", "a") as log:
+            log.write(f"Failed to send email: {e}\n")
 
 @app.route("/admin")
-def admin_dashboard():
+def admin():
     return render_template("admin.html")
 
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=5000)
+    app.run(debug=True, port=5000)

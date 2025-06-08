@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BTC Donation Site</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background: #f9f9f9; 
+        }
+        header h1 { 
+            margin: 10px 0 5px; 
+            font-size: 48px;
+            color: #333;
+        }
+        header p { 
+            color: #666; 
+            margin-bottom: 40px; 
+        }
+        iframe { 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+        }
+    </style>
+
+    <!-- Google Analytics 4 tracking -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){ dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX'); // Replace with your GA4 ID
+
+        function trackDonateClick() {
+            gtag('event', 'donate_button_click', {
+                event_category: 'engagement',
+                event_label: 'Donate Button',
+                value: 1
+            });
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>DONATE</h1>
+        <p>Support our mission by donating with your card — converted instantly to Bitcoin!</p>
+    </header>
+
+    <div style="max-width: 400px; margin: auto;">
+        <button 
+            onclick="trackDonateClick(); document.getElementById('donate-widget').scrollIntoView({ behavior: 'smooth' });" 
+            style="background-color: #f7931a; color: white; padding: 14px 28px; font-size: 18px; border: none; border-radius: 8px; margin-bottom: 20px; cursor: pointer;">
+            DONATE
+        </button>
+
+        <iframe
+            id="donate-widget"
+            src="https://nowpayments.io/payment-widget?api_key=7deaf9ed-97bb-4129-ad59-49dc981df713"
+            width="100%"
+            height="600"
+            frameborder="0">
+        </iframe>
+    </div>
+</body>
+</html>
