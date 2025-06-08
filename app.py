@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 
 app = Flask(__name__)
 
+# Environment variables
 NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY")
 NOWPAYMENTS_TEST_MODE = os.getenv("NOWPAYMENTS_TEST_MODE", "true").lower() == "true"
 BTC_WALLET_ADDRESS = os.getenv("BTC_WALLET_ADDRESS")
@@ -16,6 +17,10 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 FROM_EMAIL = os.getenv("FROM_EMAIL")
 TO_EMAIL = os.getenv("TO_EMAIL")
+
+@app.route("/")
+def index():
+    return "Welcome to the BTC Donation Site!"
 
 @app.route("/donorbox-webhook", methods=["POST"])
 def donorbox_webhook():
@@ -75,4 +80,4 @@ def admin_dashboard():
     return render_template("admin.html")
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=False, host="0.0.0.0", port=5000)
