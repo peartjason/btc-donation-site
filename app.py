@@ -44,24 +44,31 @@ def donorbox_webhook():
     if response.status_code == 200:
         btc_amount = result.get("pay_amount")
         notify_email(donor_name, amount_usd, btc_amount)
-        return jsonify({"status": "BTC Sent (Test Mode)" if NOWPAYMENTS_TEST_MODE else "BTC Sent", "details": result}), 200
+        return jsonify({
+            "status": "BTC Sent (Test Mode)" if NOWPAYMENTS_TEST_MODE else "BTC Sent",
+            "details": result
+        }), 200
     else:
         return jsonify({"error": "NOWPayments failed", "details": result}), 400
 
 def notify_email(name, usd, btc):
-    msg = MIMEText(f"New donation received:
+    try:
+        msg = MIMEText(f"""New donation received:
 
 Donor: {name}
 Amount: ${usd}
-BTC Sent: {btc}")
-    msg["Subject"] = "New BTC Donation"
-    msg["From"] = FROM_EMAIL
-    msg["To"] = TO_EMAIL
+BTC Sent: {btc}
+""")
+        msg["Subject"] = "New BTC Donation"
+        msg["From"] = FROM_EMAIL
+        msg["To"] = TO_EMAIL
 
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USERNAME, SMTP_PASSWORD)
-        server.send_message(msg)
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Email notification failed: {e}")
 
 @app.route("/admin")
 def admin_dashboard():
