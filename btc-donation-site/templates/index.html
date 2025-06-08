@@ -4,17 +4,30 @@
     <meta charset="UTF-8">
     <title>BTC Donation Site</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f9f9f9; }
-        header img { height: 80px; }
-        header h1 { margin: 10px 0 5px; }
-        header p { color: #666; margin-bottom: 40px; }
-        iframe { border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background: #f9f9f9; 
+        }
+        header h1 { 
+            margin: 10px 0 5px; 
+            font-size: 48px;
+            color: #333;
+        }
+        header p { 
+            color: #666; 
+            margin-bottom: 40px; 
+        }
+        iframe { 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+        }
     </style>
 </head>
 <body>
     <header>
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
-        <h1>BTC Donation Site</h1>
+        <h1>DONATE</h1>
         <p>Support our mission by donating with your card — converted instantly to Bitcoin!</p>
     </header>
 
