@@ -20,7 +20,7 @@ TO_EMAIL = os.getenv("TO_EMAIL")
 
 @app.route("/")
 def index():
-    return "Welcome to the BTC Donation Site!"
+    return render_template("index.html")
 
 @app.route("/donorbox-webhook", methods=["POST"])
 def donorbox_webhook():

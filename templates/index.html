@@ -1,39 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BTC Charity Donation</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 50px;
-      background: #f4f4f4;
-    }
-    h1 {
-      color: #333;
-    }
-    .donate-btn {
-      background-color: #ff9900;
-      border: none;
-      padding: 15px 30px;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-      border-radius: 8px;
-      margin-top: 30px;
-    }
-    .donate-btn:hover {
-      background-color: #e08900;
-    }
-  </style>
+    <title>Donate Bitcoin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .btn {
+            background-color: #f7931a;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #d97904;
+        }
+        img {
+            max-width: 300px;
+            margin-top: 30px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Support Our Mission</h1>
-  <p>Your donation helps us make a difference using Bitcoin!</p>
-  <form action="https://donorbox.org/your-donation-form" method="get" target="_blank">
-    <button class="donate-btn">Donate Now</button>
-  </form>
+    <h1>Support Our Cause with Bitcoin</h1>
+    <p>Your donation helps make a difference.</p>
+    <a href="https://donate.now.sh" target="_blank">
+        <button class="btn">Donate BTC</button>
+    </a>
+    <img src="{{ url_for('static', filename='download.webp') }}" alt="Bitcoin Donation">
 </body>
 </html>
