@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Thank You for Your Donation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            color: #333;
+            padding: 40px;
+            text-align: center;
+        }
+        .receipt {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 400px;
+            margin: auto;
+        }
+        h1 {
+            color: #27ae60;
+        }
+        .info {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .info p {
+            margin: 8px 0;
+        }
+        .screenshot-hint {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <h1>🎉 Thank You!</h1>
+        <p>Your donation was successful.</p>
+        
+        <div class="info">
+            <p><strong>Amount:</strong> <span id="amount">Loading...</span></p>
+            <p><strong>Currency:</strong> <span id="currency">Loading...</span></p>
+            <p><strong>Email:</strong> <span id="email">Optional</span></p>
+            <p><strong>Date:</strong> <span id="date"></span></p>
+        </div>
+
+        <div class="screenshot-hint">📸 You may screenshot this receipt for your records.</div>
+    </div>
+
+    <script>
+        // Simulated placeholder - replace with real values using query params or JS variables
+        const params = new URLSearchParams(window.location.search);
+        document.getElementById('amount').textContent = params.get('amount') || "—";
+        document.getElementById('currency').textContent = params.get('currency') || "—";
+        document.getElementById('email').textContent = params.get('email') || "Not provided";
+
+        // Set current UTC date
+        document.getElementById('date').textContent = new Date().toUTCString();
+    </script>
+</body>
+</html>
