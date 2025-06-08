@@ -1,111 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Support Our Cause with Bitcoin</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Google tag (gtag.js) for GA4 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-XXXXXXXXXX');
-    </script>
-
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 40px 20px;
-        }
-
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        p {
-            font-size: 1.2em;
-            margin-bottom: 30px;
-            color: #555;
-            max-width: 500px;
-            text-align: center;
-        }
-
-        .donate-button {
-            background-color: #f7931a;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.1em;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-bottom: 30px;
-        }
-
-        .donate-button:hover {
-            background-color: #e68210;
-        }
-
-        iframe {
-            width: 100%;
-            max-width: 420px;
-            height: 600px;
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-
-        #thank-you {
-            display: none;
-            margin-top: 20px;
-            font-size: 1.2em;
-            color: green;
-        }
-    </style>
+    <title>Admin Dashboard</title>
 </head>
 <body>
-
-    <h1>Support Our Cause with Bitcoin</h1>
-    <p>Your donation helps make a difference. Every contribution goes toward a better future.</p>
-
-    <button class="donate-button" onclick="scrollToWidget()">DONATE</button>
-
-    <iframe
-        id="payment-widget"
-        src="https://nowpayments.io/payment-widget?api_key=7deaf9ed-97bb-4129-ad59-49dc981df713"
-        allow="payment"
-    ></iframe>
-
-    <div id="thank-you">Thank you for your donation!</div>
-
-    <script>
-        function scrollToWidget() {
-            // Track click in GA4
-            gtag('event', 'donate_button_click', {
-                event_category: 'engagement',
-                event_label: 'Donate Button'
-            });
-
-            // Scroll to the widget
-            document.getElementById('payment-widget').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Optional donation confirmation (requires support from widget)
-        window.addEventListener("message", (event) => {
-            if (event.data && event.data.status === "paid") {
-                document.getElementById("thank-you").style.display = "block";
-            }
-        });
-    </script>
+    <h1>Donation Log</h1>
+    <form method="get" action="/admin">
+        <label>Filter:</label>
+        <select name="method" onchange="this.form.submit()">
+            <option value="all">All</option>
+            <option value="card">Card</option>
+            <option value="btc">BTC</option>
+        </select>
+    </form>
+    <table border="1">
+        <tr>
+            <th>Name</th><th>Email</th><th>USD</th><th>BTC</th><th>Method</th><th>Time</th>
+        </tr>
+        {% for d in donations %}
+        <tr>
+            <td>{{ d[1] }}</td>
+            <td>{{ d[2] }}</td>
+            <td>${{ '%.2f'|format(d[3] or 0) }}</td>
+            <td>{{ d[4] or 'N/A' }}</td>
+            <td>{{ d[5] }}</td>
+            <td>{{ d[7] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </body>
 </html>

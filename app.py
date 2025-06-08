@@ -1,96 +1,127 @@
-from flask import Flask, request, render_template, redirect, url_for
-from flask_talisman import Talisman
-import sqlite3
-import json
 import os
-import smtplib
-from email.mime.text import MIMEText
+import sqlite3
+import requests
+from flask import Flask, render_template, request, redirect, jsonify
+from flask_talisman import Talisman
 from datetime import datetime
+import smtplib
+from email.message import EmailMessage
 
 app = Flask(__name__)
 Talisman(app)
 
-DB_PATH = "donations.db"
-THANK_YOU_LINK = "/thank-you"
+DB_PATH = 'donations.db'
+NOWPAYMENTS_API_KEY = os.getenv("NOWPAYMENTS_API_KEY")
+BTC_WALLET = os.getenv("BTC_WALLET")
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 
-# Ensure DB exists
+# Create or update database
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS donations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            payment_id TEXT,
-            amount TEXT,
-            currency TEXT,
-            created_at TEXT,
-            email TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS donations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                email TEXT,
+                amount_usd REAL,
+                amount_btc REAL,
+                payment_method TEXT,
+                txn_id TEXT,
+                created_at TEXT
+            )
+        ''')
+        conn.commit()
 
-init_db()
-
-# Email (optional setup)
-def send_email(to_email, subject, body):
-    try:
-        smtp_server = os.getenv("SMTP_SERVER")
-        smtp_port = int(os.getenv("SMTP_PORT", 587))
-        smtp_user = os.getenv("SMTP_USER")
-        smtp_pass = os.getenv("SMTP_PASS")
-
-        msg = MIMEText(body)
-        msg["Subject"] = subject
-        msg["From"] = smtp_user
-        msg["To"] = to_email
-
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_user, [to_email], msg.as_string())
-    except Exception as e:
-        print(f"Email error: {e}")
-
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
+@app.route('/create_btc_invoice', methods=['POST'])
+def create_btc_invoice():
     data = request.json
-    print("Received Webhook:", data)
+    usd_amount = data.get('amount')
 
-    payment_id = data.get("payment_id")
-    amount = data.get("price_amount")
-    currency = data.get("price_currency")
-    email = data.get("order_description", "")  # optionally passed as description
+    payload = {
+        "price_amount": usd_amount,
+        "price_currency": "usd",
+        "pay_currency": "btc",
+        "ipn_callback_url": "https://btc-donation-site.onrender.com/webhook",
+        "order_description": "BTC Donation",
+        "is_fixed_rate": True,
+        "payout_address": BTC_WALLET
+    }
 
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("INSERT INTO donations (payment_id, amount, currency, created_at, email) VALUES (?, ?, ?, ?, ?)",
-              (payment_id, amount, currency, datetime.utcnow().isoformat(), email))
-    conn.commit()
-    conn.close()
+    headers = {
+        "x-api-key": NOWPAYMENTS_API_KEY,
+        "Content-Type": "application/json"
+    }
 
-    # Optional: email receipt
-    if email:
-        send_email(email, "Thank you for your donation!", f"We received {amount} {currency}. Thank you!")
+    r = requests.post("https://api.nowpayments.io/v1/invoice", json=payload, headers=headers)
+    return jsonify(r.json())
 
-    return json.dumps({"status": "success"}), 200
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.get_json()
+    payment_status = data.get("payment_status")
+    pay_amount = float(data.get("pay_amount", 0))
+    price_amount = float(data.get("price_amount", 0))
+    txn_id = data.get("payment_id")
+    method = "btc" if data.get("pay_currency") == "btc" else "card"
 
-@app.route("/admin")
-def admin_dashboard():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("SELECT payment_id, amount, currency, created_at, email FROM donations ORDER BY created_at DESC")
-    donations = c.fetchall()
-    conn.close()
-    return render_template("admin.html", donations=donations)
+    if payment_status in ("finished", "confirmed"):
+        with sqlite3.connect(DB_PATH) as conn:
+            c = conn.cursor()
+            c.execute('''
+                INSERT INTO donations (name, email, amount_usd, amount_btc, payment_method, txn_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                data.get("buyer_name") or "BTC Donor",
+                data.get("order_id") or "N/A",
+                price_amount,
+                pay_amount if method == "btc" else None,
+                method,
+                txn_id,
+                datetime.utcnow().isoformat()
+            ))
+            conn.commit()
 
-@app.route("/thank-you")
-def thank_you():
-    return render_template("thank_you.html")
+        if method == "card":
+            send_email(data.get("order_id"), price_amount)
 
-if __name__ == "__main__":
+    return jsonify({"status": "ok"})
+
+def send_email(email, amount):
+    msg = EmailMessage()
+    msg['Subject'] = 'Thank You for Your Donation!'
+    msg['From'] = SMTP_USER
+    msg['To'] = email
+    msg.set_content(f'Thank you for donating ${amount:.2f}. Your support is appreciated!')
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
+
+@app.route('/thankyou')
+def thankyou():
+    return render_template('thankyou.html')
+
+@app.route('/admin')
+def admin():
+    method_filter = request.args.get('method', 'all')
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        if method_filter == 'all':
+            c.execute("SELECT * FROM donations ORDER BY created_at DESC")
+        else:
+            c.execute("SELECT * FROM donations WHERE payment_method=? ORDER BY created_at DESC", (method_filter,))
+        donations = c.fetchall()
+    return render_template('admin.html', donations=donations)
+
+if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
