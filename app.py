@@ -30,3 +30,29 @@ def send_email():
     return jsonify({"status": "sent"})
 
 
+
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_mail import Mail, Message
+from db import EmailLog, Donation, db
+import os
+
+@app.route('/admin/emails')
+def admin_emails():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+    search = request.args.get('search', '')
+    emails = EmailLog.query.filter(
+        (EmailLog.recipient.like(f'%{search}%')) | 
+        (EmailLog.subject.like(f'%{search}%'))
+    ).order_by(EmailLog.timestamp.desc()).all()
+    return render_template('admin_emails.html', emails=emails, search=search)
+
+@app.route('/admin/resend/<int:email_id>')
+def resend_email(email_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+    email = EmailLog.query.get_or_404(email_id)
+    msg = Message(email.subject, recipients=[email.recipient], html=email.body)
+    mail.send(msg)
+    flash('Email resent successfully.', 'success')
+    return redirect(url_for('admin_emails'))

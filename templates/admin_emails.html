@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Email Logs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 p-6">
+  <h1 class="text-2xl font-bold mb-4">?? Sent Emails</h1>
+
+  <form method="get" class="mb-4">
+    <input type="text" name="search" value="{{ search }}" placeholder="Search emails..." class="px-3 py-2 border rounded w-64" />
+    <button type="submit" class="ml-2 px-3 py-2 bg-blue-600 text-white rounded">Search</button>
+  </form>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white shadow-md rounded">
+      <thead>
+        <tr class="bg-gray-200 text-left text-sm">
+          <th class="py-2 px-3">To</th>
+          <th class="py-2 px-3">Subject</th>
+          <th class="py-2 px-3">Date</th>
+          <th class="py-2 px-3">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for email in emails %}
+        <tr class="border-b">
+          <td class="py-2 px-3">{{ email.recipient }}</td>
+          <td class="py-2 px-3">{{ email.subject }}</td>
+          <td class="py-2 px-3">{{ email.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td class="py-2 px-3">
+            <a href="{{ url_for('resend_email', email_id=email.id) }}" class="text-blue-600 hover:underline">Resend</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
