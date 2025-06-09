@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BTC Donation Site</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <header class="bg-white shadow-md mb-4">
+    <img src="{{ url_for('static', filename='images/banner.png') }}" alt="Banner" class="w-full h-48 object-cover">
+    <div class="text-center py-2">
+      <h1 class="text-2xl font-bold">Total Raised: ?{{ total_btc or '0.0000' }}</h1>
+    </div>
+  </header>
+
+  <main class="p-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="bg-white text-center py-4 text-sm mt-10">
+    <a href="{{ url_for('faq') }}" class="text-blue-600 hover:underline">FAQ</a> |
+    <a href="{{ url_for('contact') }}" class="text-blue-600 hover:underline">Contact</a>
+  </footer>
+</body>
+</html>

@@ -63,3 +63,13 @@ def resend_email(email_id):
     mail.send(msg)
     flash('Email resent successfully.', 'success')
     return redirect(url_for('admin_emails'))
+
+
+@app.route('/faq')
+def faq():
+    return render_template('faq.html')
+
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
