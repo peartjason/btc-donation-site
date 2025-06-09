@@ -1,0 +1,13 @@
+<h2>Donations</h2>
+<table border="1">
+  <tr><th>ID</th><th>Amount</th><th>Currency</th><th>Method</th><th>BTC Address</th></tr>
+  {% for tx in txns %}
+  <tr>
+    <td>{{ tx.id }}</td>
+    <td>{{ tx.amount }}</td>
+    <td>{{ tx.currency }}</td>
+    <td>{{ tx.method }}</td>
+    <td>{{ tx.btc_address }}</td>
+  </tr>
+  {% endfor %}
+</table>
