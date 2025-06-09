@@ -1,4 +1,4 @@
-﻿from flask_mail import Mail, Message
+from flask_mail import Mail, Message
 
 # Existing code setup above this...
 mail = Mail(app)
@@ -14,3 +14,4 @@ def send_confirmation_email(to, subject, body):
     msg = Message(subject, recipients=[to])
     msg.body = body
     mail.send(msg)
+
