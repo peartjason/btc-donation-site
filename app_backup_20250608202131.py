@@ -29,4 +29,3 @@ def send_email():
     mail.send(msg)
     return jsonify({"status": "sent"})
 
-
