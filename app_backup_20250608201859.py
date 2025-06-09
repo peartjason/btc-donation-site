@@ -15,17 +15,3 @@ def send_confirmation_email(to, subject, body):
     msg.body = body
     mail.send(msg)
 
-
-
-from flask_mail import Mail, Message
-mail = Mail(app)
-
-@app.route('/send-email', methods=['POST'])
-def send_email():
-    data = request.json
-    msg = Message("Thank You for Your Donation!",
-                  recipients=[data['email']])
-    msg.html = render_template("email_receipt.html", name=data['name'], amount=data['amount'], method=data['method'])
-    mail.send(msg)
-    return jsonify({"status": "sent"})
-
