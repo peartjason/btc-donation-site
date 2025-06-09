@@ -4,3 +4,7 @@ requests
 flask
 
 flask-mail
+
+flask_sqlalchemy
+
+flask_mail
