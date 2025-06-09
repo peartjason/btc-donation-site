@@ -1,25 +1,27 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_mail import Mail, Message
+from db import EmailLog, Donation, db
+import os
 
-# Existing code setup above this...
-mail = Mail(app)
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "your_default_secret")
+
+# Mail Configuration
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = 'your_email@gmail.com'
-app.config['MAIL_PASSWORD'] = 'your_password'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'your_email@gmail.com')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'your_password')
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
-mail.init_app(app)
 
-def send_confirmation_email(to, subject, body):
-    msg = Message(subject, recipients=[to])
-    msg.body = body
-    mail.send(msg)
-
-
-
-from flask_mail import Mail, Message
 mail = Mail(app)
 
+# Send email helper function
+def send_confirmation_email(to, subject, html_body):
+    msg = Message(subject, recipients=[to], html=html_body)
+    mail.send(msg)
+
+# Route to send test email (optional testing)
 @app.route('/send-email', methods=['POST'])
 def send_email():
     data = request.json
@@ -27,15 +29,19 @@ def send_email():
                   recipients=[data['email']])
     msg.html = render_template("email_receipt.html", name=data['name'], amount=data['amount'], method=data['method'])
     mail.send(msg)
+
+    # Optional: Log sent email to database
+    email_log = EmailLog(
+        recipient=data['email'],
+        subject="Thank You for Your Donation!",
+        body=msg.html
+    )
+    db.session.add(email_log)
+    db.session.commit()
+
     return jsonify({"status": "sent"})
 
-
-
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from flask_mail import Mail, Message
-from db import EmailLog, Donation, db
-import os
-
+# Admin route to view all email logs
 @app.route('/admin/emails')
 def admin_emails():
     if not session.get('logged_in'):
@@ -47,6 +53,7 @@ def admin_emails():
     ).order_by(EmailLog.timestamp.desc()).all()
     return render_template('admin_emails.html', emails=emails, search=search)
 
+# Admin route to resend a specific email
 @app.route('/admin/resend/<int:email_id>')
 def resend_email(email_id):
     if not session.get('logged_in'):
