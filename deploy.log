@@ -1,0 +1,6 @@
+2025-06-08 21:56:40 - ?? Starting deployment process...
+2025-06-08 21:56:40 - ? .env file found:
+2025-06-08 21:56:40 - 	FLUTTERWAVE_SECRET_KEY=your_flutterwave_secret_key_here
+2025-06-08 21:56:40 - 	BTC_WALLET_ADDRESS=your_bitcoin_wallet_address_here
+2025-06-08 21:56:40 - ?? site.db not found. Creating initial database...
+2025-06-08 21:56:40 - ? Failed to create database.

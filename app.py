@@ -64,12 +64,19 @@ def resend_email(email_id):
     flash('Email resent successfully.', 'success')
     return redirect(url_for('admin_emails'))
 
-
 @app.route('/faq')
 def faq():
     return render_template('faq.html')
 
-
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
+
+# Home route
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Run the Flask app (for local testing)
+if __name__ == "__main__":
+    app.run(debug=True)
